@@ -1,0 +1,7 @@
+# PPO baseline with partition + routing only (full-precision features)
+
+algorithm:
+  name: pr_no_compression_ppo
+  type: drl
+  ablation:
+    fixed_bitwidth: 32

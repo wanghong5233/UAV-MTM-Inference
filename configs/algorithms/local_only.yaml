@@ -1,0 +1,12 @@
+# Local-only system baseline
+
+algorithm:
+  name: local_only
+  type: baseline
+
+training:
+  num_episodes: 0
+  requires_training: false
+
+evaluation:
+  deterministic: true

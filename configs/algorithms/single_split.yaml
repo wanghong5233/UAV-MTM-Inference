@@ -1,0 +1,15 @@
+# Conventional single-split computing baseline
+
+algorithm:
+  name: single_split
+  type: baseline
+  policy:
+    include_local_fallback: false
+    allow_source_worker: false
+
+training:
+  num_episodes: 0
+  requires_training: false
+
+evaluation:
+  deterministic: true

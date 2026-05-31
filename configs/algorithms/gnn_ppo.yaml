@@ -1,0 +1,64 @@
+# GNN-PPO configuration
+
+algorithm:
+  name: gnn_ppo
+  type: drl
+  
+  # Network architecture
+  network:
+    # GNN encoder
+    gnn:
+      num_layers: 3
+      hidden_dim: 256               # 256 for richer node representations (was 128)
+      edge_dim: 64
+      aggregation: mean             # mean, max, add
+      activation: relu
+      dropout: 0.0                  # No dropout in RL policy networks (was 0.1)
+    
+    # Actor network
+    actor:
+      hidden_dims: [256, 128]
+      activation: relu
+      output_activation: tanh
+    
+    # Critic network
+    critic:
+      hidden_dims: [256, 128]
+      activation: relu
+
+  # PPO hyperparameters
+  ppo:
+    gamma: 0.99                     # Discount factor
+    gae_lambda: 0.95                # GAE lambda
+    normalize_advantage: true       # Normalize advantage per rollout
+    clip_epsilon: 0.2               # PPO clip epsilon
+    target_kl: 0.03                 # Early stop update if approx_kl exceeds this
+    value_loss_coef: 0.5            # Value loss coefficient
+    value_clip_enabled: true        # Clip value update for critic stability
+    value_clip_epsilon: 0.2         # Value clipping range
+    entropy_coef: 0.01              # Entropy coefficient
+    max_grad_norm: 0.5              # Gradient clipping
+    adam_eps: 1e-5                  # Adam epsilon for numeric stability
+    weight_decay: 0.0               # Optional weight decay
+    
+    # Training parameters
+    n_steps: 2048                   # Rollout steps (2048/256 = 8 mini-batches/epoch)
+    n_epochs: 10                    # Update epochs per rollout
+    batch_size: 256                 # Mini-batch size (was 64 in base)
+    learning_rate: 3e-4             # Learning rate
+    lr_schedule: linear             # linear or constant
+
+# Optimizer configuration
+optimizer:
+  type: adam
+  lr: 3e-4
+  eps: 1e-5
+  weight_decay: 0.0
+
+# Training configuration
+training:
+  num_episodes: 10000
+  max_steps_per_episode: 100
+  eval_interval: 100
+  save_interval: 500
+

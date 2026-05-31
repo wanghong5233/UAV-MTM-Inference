@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# 环境
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 数据集（大文件，请用 scripts/data/ 下载）
+data/
+!data/.gitkeep
+
+# 实验结果
+experiments/
+!experiments/.gitkeep
+results/
+
+# 模型权重（Git LFS）
+checkpoints/*.pth
+!checkpoints/.gitkeep
+
+# 内部文档 / 服务器运维（不上传）
+docs/
+hardware/
+
+# 日志与监控
+logs/
+*.log
+runs/
+wandb/
+
+# 临时 / 本地调试
+tmp_smoke/
+tmp/
+*.tmp
+*.bak
+*.cache
+texput.log
+_paper_data_dump.txt
+
+# 压缩包与下载缓存
+*.tgz
+*.tar.gz
+*.zip
+*.rar
+_dl_*/
+
+# 安装包 / 二进制
+*.exe
+*.msi
+
+# 系统文件
+.DS_Store
+Thumbs.db

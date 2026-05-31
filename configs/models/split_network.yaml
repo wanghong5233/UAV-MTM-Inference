@@ -1,0 +1,41 @@
+# Split Network (Hard Parameter Sharing) 模型配置
+
+model:
+  name: split_network
+  type: hard_sharing
+  
+  # 模型架构
+  architecture:
+    backbone: resnet18              # 共享主干网络
+    num_tasks: 3                    # 任务数量
+    task_names:
+      - semantic_segmentation
+      - depth_estimation
+      - surface_normal
+  
+  # 切分点配置
+  split_points:
+    - layer1.1                      # 可选切分点1
+    - layer2.1                      # 可选切分点2
+    - layer3.1                      # 可选切分点3
+    - layer4.0                      # 可选切分点4
+  
+  # 输入输出
+  input_shape: [3, 224, 224]
+  num_classes:
+    semantic_segmentation: 40
+    depth_estimation: 1
+    surface_normal: 3
+
+# 预训练权重
+pretrained:
+  path: data/pretrained/split_network.pth
+  url: null  # 下载链接（如果有）
+
+# 特征维度（用于精度建模）
+feature_dims:
+  layer1.1: [64, 56, 56]
+  layer2.1: [128, 28, 28]
+  layer3.1: [256, 14, 14]
+  layer4.0: [512, 7, 7]
+

@@ -1,0 +1,10 @@
+# PPO baseline with flat-state MLP encoder
+
+algorithm:
+  name: mlp_ppo
+  type: drl
+  network:
+    mlp_encoder:
+      hidden_dim: 128
+      hidden_dims: [256, 256]
+      activation: relu

@@ -1,0 +1,14 @@
+name: uav-mtl
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch>=2.0.0
+  - torchvision>=0.15.0
+  - cudatoolkit=11.8  # 根据GPU调整
+  - pip
+  - pip:
+    - -r requirements.txt
+

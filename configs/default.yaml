@@ -1,0 +1,164 @@
+# Default configuration parameters
+# Base configuration for all experiments
+
+# Random seed (reproducibility)
+seed: 42
+
+# Device configuration
+device: cuda  # cuda or cpu
+num_workers: 4
+
+# UAV swarm configuration
+uav:
+  num_uavs: 10                    # Number of UAVs
+  num_task_uavs: 1                # Task-generating UAVs
+  num_worker_uavs: 9              # Worker UAVs
+  source_uav: 0                   # Task source UAV index
+  area_size: [1000, 1000]         # Area size (m)
+  altitude_range: [50, 200]       # Altitude range (m)
+  mobility_std: 0.0               # Mobility noise std (m/step)
+  capability_static: false        # If true, sampled hardware capabilities stay fixed across episodes
+  min_separation: 0.0             # Minimum 2D separation between UAVs (m); 0 disables
+  
+  # Heterogeneous compute capacity
+  compute_capacity:
+    min: 1.0e9                    # Min compute capacity (FLOPs/s)
+    max: 5.0e9                    # Max compute capacity
+  
+  # Heterogeneous battery capacity
+  battery_capacity:
+    min: 50.0                     # Min battery capacity (J)
+    max: 200.0                    # Max battery capacity
+
+  # Optional structured heterogeneity (strong/medium/weak tiers).
+  # If omitted, environment uses uniform random sampling within ranges above.
+  heterogeneity:
+    mode: uniform                 # uniform or tiered
+    tiers: []                     # Filled only when mode=tiered
+
+# Network configuration
+network:
+  bandwidth: 20e6                 # Channel bandwidth (Hz)
+  noise_power: 1e-13              # Noise power (W)
+  path_loss_exponent: 3.5         # Path loss exponent
+  tx_power: 0.1                   # Transmit power (W)
+  max_range: 500.0                # Max communication range (m)
+  
+# Task configuration
+task:
+  input_size: [224, 224, 3]       # Input image size (H, W, C)
+  raw_bytes_per_elem: 1.0         # Raw sensor bytes per pixel/channel for first-hop dispatch
+  arrival_rate: 0.5               # Arrival rate (tasks/s)
+  deadline: 1.0                   # Deadline (s)
+  popularity_mode: fixed          # fixed or random
+  popularity: null                # e.g., [0.5, 0.3, 0.2]
+  dirichlet_alpha: 1.0            # Dirichlet alpha for random popularity
+  avg_tasks_per_request: 1.0      # Expected number of tasks in one request
+  request_ipf_iters: 64           # Iterations for max-entropy task-set fitting
+  request_ipf_tol: 1e-6           # Convergence tolerance for task-set fitting
+
+# Model configuration (overridden by experiment config)
+model:
+  name: mtan
+  bytes_per_elem: 4               # Bytes per element (float32)
+  flops_per_byte: 1.0             # FLOPs proxy per byte (scalable)
+  architecture:
+    input_resolution: [3, 288, 288]
+    num_classes: 13
+    task_names: [seg, depth, normal]
+  
+# Quantization configuration
+quantization:
+  # Corresponds to R = {1, 1/2, 1/4, 1/8} (bit-width: 32/16/8/4)
+  # Convention: bw >= 32 means full precision (no quantization)
+  bit_widths: [32, 16, 8, 4]      # Candidate bit widths
+  default_bit_width: 32           # Default bit width (full precision)
+
+# Accuracy surrogate model
+accuracy_model:
+  sensitivity_path: null          # e.g., results/accuracy_modeling/mtan/sensitivity_mtan_fixed.pkl
+
+# Training configuration
+training:
+  num_episodes: 10000             # Number of episodes
+  max_steps_per_episode: 100      # Max steps per episode
+  eval_interval: 100              # Evaluation interval
+  save_interval: 500              # Checkpoint interval
+  batch_size: 64                  # Batch size
+  learning_rate: 3e-4             # Learning rate
+  gamma: 0.99                     # Discount factor
+
+# Simulation parameters
+simulation:
+  delta_t: 1.0
+  chi: 0.2
+  a_min: 0.0
+  delta_a: 0.0
+  repair_routing: true
+  repair_accuracy: true
+  invalid_link_delay: 10.0
+
+# Energy parameters
+energy:
+  hover_power:
+    min: 150.0
+    max: 250.0
+  epsilon_cpu: 1e-9
+  epsilon_comm: 1e-6
+  mu_bal: 0.0
+  min_battery: 0.0
+
+# Preference vector
+preference:
+  mode: fixed
+  weights: [0.5, 0.5]
+
+# Observation normalization
+state_normalization:
+  enabled: true
+  mode: zero_one                 # zero_one (recommended for graph inputs)
+  arrival_rate_max: 1.0
+  clip: true
+
+# Reward configuration
+reward:
+  tau_ref: 1.0
+  energy_ref: 1.0
+  kappa_blocks: 0.0
+  mu_penalty: 1.0
+  penalty_eps: 0.01
+  weight_accuracy: 0.0
+  signal_scaling:
+    enabled: false
+    mode: scale_only             # scale_only or window_standardize
+    target_abs_max: 50.0
+    warmup_enabled: false
+    warmup_episodes: 200
+    warmup_target_abs_max: 10.0
+    running_abs_decay: 0.995
+    init_abs_max: 5.0
+    window_size: 4096
+    window_min_samples: 128
+    window_eps: 1e-6
+    window_z_clip: 3.0
+
+# Evaluation configuration
+evaluation:
+  num_episodes: 100               # Evaluation episodes
+  deterministic: true             # Deterministic policy
+
+# Logging configuration
+logging:
+  backend: tensorboard            # tensorboard or wandb
+  log_interval: 10                # Logging interval
+  console_mode: tqdm              # tqdm (single-line bar) or plain (iteration window)
+  console_trend_enabled: true     # Print rolling trend lines in terminal
+  console_trend_interval: 20      # After the first 30 episodes, print every N episodes
+  console_trend_max_lines: 30     # First N episodes are always printed (for quick monitoring)
+  csv_enabled: true               # Export scalar metrics to CSV
+  csv_filename: metrics_long.csv  # Long-format CSV for plotting/reporting
+  debug_events_enabled: true      # Persist debug events for failure analysis
+  debug_events_filename: debug_events.jsonl
+  project: UAV-MTL-Inference      # Project name
+  entity: null                    # WandB entity (optional)
+
