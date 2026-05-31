@@ -44,8 +44,8 @@ venv.bak/
 data/
 !data/.gitkeep
 
-# 实验结果
-experiments/
+# 实验输出（仅根目录 experiments/，不含 configs/experiments/）
+/experiments/
 !experiments/.gitkeep
 results/
 

@@ -1,0 +1,6 @@
+base:
+  - ./main_gnn_ppo_tmc_stable.yaml
+  - ../algorithms/local_only.yaml
+
+experiment:
+  name: baseline_local_only_tmc_stable

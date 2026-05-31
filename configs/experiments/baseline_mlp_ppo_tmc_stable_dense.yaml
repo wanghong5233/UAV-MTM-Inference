@@ -1,0 +1,6 @@
+base:
+  - ./main_gnn_ppo_tmc_stable_dense.yaml
+  - ../algorithms/mlp_ppo.yaml
+
+experiment:
+  name: baseline_mlp_ppo_dense_tmc_stable

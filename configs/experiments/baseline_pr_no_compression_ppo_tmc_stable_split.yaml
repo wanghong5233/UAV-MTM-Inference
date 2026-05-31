@@ -1,0 +1,6 @@
+base:
+  - ./main_gnn_ppo_tmc_stable_split.yaml
+  - ../algorithms/pr_no_compression_ppo.yaml
+
+experiment:
+  name: baseline_pr_no_compression_ppo_split_tmc_stable

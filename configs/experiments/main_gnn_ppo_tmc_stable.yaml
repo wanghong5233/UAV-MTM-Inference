@@ -1,0 +1,270 @@
+# Stable training preset for UAV-MTM simulation (MTAN + GNN-PPO).
+#
+# This profile is tuned for robust first-run convergence and better observability:
+# - realistic UAV swarm/environment scales
+# - balanced reward normalization
+# - conservative PPO update setup
+# - TensorBoard + CSV + debug-event logging enabled
+
+base:
+  - ../default.yaml
+  - ../algorithms/gnn_ppo.yaml
+
+experiment:
+  name: gnn_ppo_mtan_tmc_stable
+
+model:
+  name: mtan
+  flops_per_byte: 100.0
+  architecture:
+    input_resolution: [3, 288, 288]
+    num_classes: 13
+    task_names: [seg, depth, normal]
+
+accuracy_model:
+  sensitivity_path: results/accuracy_modeling/mtan/sensitivity_mtan_fixed.pkl
+
+uav:
+  num_uavs: 12
+  num_task_uavs: 1
+  num_worker_uavs: 11
+  source_uav: 0
+  area_size: [1000, 1000]
+  altitude_range: [80, 150]
+  # Low-mobility regime (more stable + easier RL): per-epoch random-walk std.
+  # With delta_t=10 s, 5 m/epoch corresponds to roughly 0.5 m/s drift.
+  mobility_std: 5.0
+  # Minimum 2D separation at reset/mobility (avoid overlap/collisions).
+  min_separation: 30.0
+  # Sampling/avoidance knobs (keep default unless debugging extreme cases).
+  position_max_tries: 2000
+  avoidance_iters: 3
+  # Keep UAV hardware capabilities fixed across episodes to reduce
+  # non-stationarity while preserving topology randomness.
+  capability_static: true
+  # Compute capacity in FLOPs/s.  Calibrated to embedded AI accelerators that
+  # are deployable on rotary-wing UAVs (e.g., Jetson-class chips, mobile NPUs).
+  # At 100-800 GFLOPs/s, a single-UAV forward pass of MTAN (302 GFLOPs) takes
+  # ~0.4-3 s, making delay optimization non-trivial and the computation/
+  # communication tradeoff meaningful at typical inter-UAV link rates.
+  compute_capacity:
+    min: 1.0e11    # 100 GFLOPs/s — weakest edge AI processor
+    max: 8.0e11    # 800 GFLOPs/s — high-end embedded AI accelerator
+  # Battery budget (J). With hover power 150-250 W and delta_t=10 s, a
+  # 100-step episode spans about 16.7 minutes, so the battery should sustain
+  # the full mission horizon without action-independent depletion.
+  battery_capacity:
+    min: 220000.0
+    max: 420000.0
+  # The source UAV carries the sensing payload and triggers requests.
+  # To avoid a degenerate "always local" optimum, we model it as a genuinely
+  # sensing-oriented node: weaker compute and worse J/FLOP than dedicated
+  # worker UAVs. This makes collaboration necessary under sustained load.
+  # The source UAV carries the sensing payload and triggers requests.
+  # It has a mid-range edge AI processor (e.g., Jetson Xavier NX class)
+  # capable of running the shared backbone locally, but not fast enough
+  # to handle the full model under high load.  This creates a meaningful
+  # partition decision: source can do shared layers, workers handle tasks.
+  source_profile:
+    compute_min: 1.0e11
+    compute_max: 1.2e11
+    epsilon_cpu_min: 7.0e-11
+    epsilon_cpu_max: 7.0e-11
+    battery_min: 290000.0
+    battery_max: 290000.0
+    hover_power_min: 210.0
+    hover_power_max: 210.0
+    # Source UAV carries sensing payload that occupies part of its
+    # communication resources -> moderately narrow band (3-4 MHz),
+    # in the lower range of LTE-V2X / 802.11s mesh UAV radios.
+    bandwidth_min: 3.0e6
+    bandwidth_max: 4.0e6
+  # Structured heterogeneity: strong/medium/weak workers.
+  heterogeneity:
+    mode: tiered
+    tiers:
+      # Strong UAVs (~25%): high-end edge AI accelerators (e.g. Jetson Orin).
+      # Fast but energy-hungry per FLOP. Equipped with wide-band SDR /
+      # 802.11ac-class radio -> 8-12 MHz (LTE-10 sub-band range).
+      - frac: 0.25
+        compute_min: 4.5e11
+        compute_max: 5.8e11
+        epsilon_cpu_min: 3.8e-11
+        epsilon_cpu_max: 4.5e-11
+        battery_min: 320000.0
+        battery_max: 420000.0
+        hover_power_min: 200.0
+        hover_power_max: 250.0
+        bandwidth_min: 8.0e6
+        bandwidth_max: 1.2e7
+      # Medium UAVs (~50%): balanced latency-energy workers.
+      # Standard mesh radio / LTE-V2X -> 4-6 MHz.
+      - frac: 0.50
+        compute_min: 2.8e11
+        compute_max: 4.5e11
+        epsilon_cpu_min: 5.0e-11
+        epsilon_cpu_max: 5.8e-11
+        battery_min: 260000.0
+        battery_max: 350000.0
+        hover_power_min: 170.0
+        hover_power_max: 220.0
+        bandwidth_min: 4.0e6
+        bandwidth_max: 6.0e6
+      # Weak UAVs (~25%): slower processors, less energy-efficient.
+      # Entry-level narrowband module -> 2-3 MHz (NB-IoT class).
+      - frac: 0.25
+        compute_min: 1.0e11
+        compute_max: 1.8e11
+        epsilon_cpu_min: 6.5e-11
+        epsilon_cpu_max: 8.0e-11
+        battery_min: 200000.0
+        battery_max: 260000.0
+        hover_power_min: 150.0
+        hover_power_max: 190.0
+        bandwidth_min: 2.0e6
+        bandwidth_max: 3.0e6
+
+network:
+  # UAV ad-hoc A2A link budget.  5 MHz is a conservative but widely used
+  # bandwidth for UAV mesh networks (cf. 1-10 MHz range in TMC/IoT-J
+  # literature).  Combined with tx_power=0.2 W and noise=-100 dBm, this
+  # yields ~50-70 Mbps at typical inter-UAV distances (200-600 m), making
+  # intermediate-feature transmission a genuine bottleneck and giving
+  # the compression decision variable a meaningful trade-off space.
+  bandwidth: 5e6
+  noise_power: 1e-13
+  path_loss_exponent: 3.2
+  tx_power: 0.2
+  max_range: 800.0
+
+task:
+  input_size: [288, 288, 3]
+  raw_bytes_per_elem: 1.0
+  # Streaming inference load: one deployment decision serves a stable request
+  # stream during the epoch instead of re-optimizing per image.  At 10 req/s
+  # (typical UAV video perception), a single strong worker reaches rho~5,
+  # making multi-UAV collaboration and intelligent routing essential.
+  arrival_rate: 10.0
+  deadline: 2.0
+  # Heterogeneous task demand: not every request needs all 3 tasks.
+  # In real UAV perception, navigation may only need depth, obstacle
+  # avoidance only needs segmentation, etc.  avg_tasks_per_request=1.5
+  # means ~50% of requests need 1 task, ~50% need 2 tasks on average.
+  # This gives DRL a structural advantage: it can learn to skip unneeded
+  # task branches, while single-split baselines must compute everything.
+  popularity_mode: random
+  dirichlet_alpha: 1.0
+  avg_tasks_per_request: 1.5
+
+preference:
+  # Extreme energy-first validation run: keep a small but non-zero delay weight
+  # so the objective remains a valid delay-energy trade-off instead of a fully
+  # degenerate pure-energy problem. This shared setting is used by all four
+  # backbones to verify that Ereq can indeed be driven down.
+  mode: fixed
+  weights: [0.5, 0.5]
+
+simulation:
+  # One environment step corresponds to one planning epoch.
+  # We set delta_t longer than a single request latency so that one step
+  # represents stable streaming operation under a fixed deployment.
+  delta_t: 10.0
+  chi: 0.2
+  a_min: 0.93
+  delta_a: 0.02
+  repair_routing: true
+  repair_accuracy: false
+  invalid_link_delay: 5.0
+
+energy:
+  hover_power:
+    min: 150.0
+    max: 250.0
+  # Fixed platform J/FLOP profiles are the primary compute-energy model.
+  # The actual per-UAV epsilon is sampled from source/tier profiles above.
+  # This keeps the paper's "platform-specific epsilon_u^cpu" semantics and
+  # creates a natural delay-energy trade-off without introducing DVFS.
+  epsilon_cpu: 4.5e-11
+  epsilon_cpu_range:
+    min: 3.0e-11
+    max: 7.0e-11
+  epsilon_comm: 6.5e-9
+  mu_bal: 0.02
+  min_battery: 8000.0
+
+reward:
+  # tau_ref: reference per-request delay within one planning epoch.
+  # The default 2.0 is a middle-ground anchor for MTAN-class workloads.
+  # Lighter/heavier backbones override this value in their own configs.
+  tau_ref: 2.0
+  # energy_ref: reference per-request action-dependent energy.
+  # The main energy objective is compute + communication energy per request,
+  # excluding hover energy.  The default 12.0 is calibrated for MTAN
+  # (~14-16 J/req); model-specific configs override this for their own
+  # energy scale so that a 1 J change has comparable reward weight to
+  # a 1 s delay change.
+  energy_ref: 12.0
+  kappa_blocks: 0.0
+  # Keep constraints effective while avoiding over-conservative high-accuracy bias.
+  mu_penalty: 0.001
+  penalty_eps: 0.50
+  # Accuracy is treated as a constraint, not an optimization objective.
+  weight_accuracy: 0.0
+  signal_scaling:
+    enabled: true
+    mode: window_standardize
+    target_abs_max: 50.0
+    warmup_enabled: false
+    warmup_episodes: 0
+    warmup_target_abs_max: 50.0
+    running_abs_decay: 0.995
+    init_abs_max: 5.0
+    window_size: 8192
+    window_min_samples: 128
+    window_eps: 1e-6
+    window_z_clip: 3.0
+
+algorithm:
+  network:
+    gnn:
+      num_layers: 2                 # speed/stability compromise on laptop GPU
+      hidden_dim: 128               # reduce encoder cost (256 -> 128)
+      dropout: 0.0
+  ppo:
+    gamma: 0.99
+    gae_lambda: 0.95
+    normalize_advantage: true
+    clip_epsilon: 0.2
+    target_kl: 0.03
+    value_loss_coef: 0.5
+    value_clip_enabled: true
+    value_clip_epsilon: 0.2
+    entropy_coef: 0.05
+    max_grad_norm: 0.5
+    adam_eps: 1e-5
+    weight_decay: 0.0
+    n_steps: 500                    # align with 50-step episode; update about every 10 episodes
+    n_epochs: 4                     # balanced PPO practice: stable updates without 10x epoch overhead
+    batch_size: 125                 # 4 mini-batches/epoch (500/125)
+    learning_rate: 2.0e-4
+    lr_schedule: linear
+
+training:
+  num_episodes: 30000
+  max_steps_per_episode: 50
+  eval_interval: 1000
+  save_interval: 2000
+
+evaluation:
+  num_episodes: 30
+  deterministic: true
+
+logging:
+  backend: tensorboard
+  log_interval: 50
+  csv_enabled: true
+  csv_filename: metrics_long.csv
+  debug_events_enabled: true
+  debug_events_filename: debug_events.jsonl
+  project: UAV-MTL-Inference
+  entity: null

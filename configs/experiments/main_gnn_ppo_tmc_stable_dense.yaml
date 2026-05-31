@@ -1,0 +1,26 @@
+base:
+  - ./main_gnn_ppo_tmc_stable.yaml
+
+experiment:
+  name: gnn_ppo_dense_tmc_stable
+
+model:
+  name: dense
+  architecture:
+    input_resolution: [3, 288, 288]
+    num_classes: 13
+    task_names: [seg, depth, normal]
+
+accuracy_model:
+  sensitivity_path: results/accuracy_modeling/dense/sensitivity_dense_fixed.pkl
+
+reward:
+  # Dense is the heaviest backbone and is sensitive to over-exploration. We
+  # therefore keep a tighter delay anchor than MTAN/Cross so the policy does
+  # not drift into high-communication, high-latency regimes.
+  tau_ref: 1.5
+  energy_ref: 20.0
+
+algorithm:
+  ppo:
+    entropy_coef: 0.05

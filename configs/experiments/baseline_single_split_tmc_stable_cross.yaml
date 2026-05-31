@@ -1,0 +1,6 @@
+base:
+  - ./main_gnn_ppo_tmc_stable_cross.yaml
+  - ../algorithms/single_split.yaml
+
+experiment:
+  name: baseline_single_split_cross_tmc_stable
